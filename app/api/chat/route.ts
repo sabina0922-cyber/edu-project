@@ -74,7 +74,7 @@ export async function POST(request: Request) {
           const fc = functionCalls[0]
           send({ type: 'tool_start', name: fc.name })
 
-          const recipeData = getRecipeResult((fc.args as { dish_name: string }).dish_name)
+          const recipeData = await getRecipeResult((fc.args as { dish_name: string }).dish_name)
 
           // Send function result and stream the follow-up response
           const secondResult = await chat.sendMessageStream([
