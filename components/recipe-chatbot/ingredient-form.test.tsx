@@ -4,35 +4,52 @@ import userEvent from '@testing-library/user-event'
 import { IngredientForm } from './ingredient-form'
 
 describe('IngredientForm', () => {
-  it('shows validation error when name is empty', async () => {
+  it('renders 5 rows by default', () => {
     render(<IngredientForm onSave={() => {}} onCancel={() => {}} />)
-    // fill qty but not name
-    await userEvent.type(screen.getByLabelText(/수량/), '3')
-    fireEvent.click(screen.getByRole('button', { name: /저장/ }))
-    expect(screen.getByText(/재료명을 입력하세요/)).toBeInTheDocument()
+    const nameInputs = screen.getAllByRole('textbox', { name: '재료명' })
+    expect(nameInputs).toHaveLength(5)
   })
 
-  it('shows validation error when qty is empty', async () => {
+  it('adds a new row when "재료 추가" button is clicked', () => {
     render(<IngredientForm onSave={() => {}} onCancel={() => {}} />)
-    await userEvent.type(screen.getByLabelText(/재료명/), '계란')
-    fireEvent.click(screen.getByRole('button', { name: /저장/ }))
-    expect(screen.getByText(/수량을 입력하세요/)).toBeInTheDocument()
+    fireEvent.click(screen.getByText(/재료 추가/))
+    const nameInputs = screen.getAllByRole('textbox', { name: '재료명' })
+    expect(nameInputs).toHaveLength(6)
   })
 
-  it('stays on the form when validation fails', async () => {
+  it('removes a row when delete button is clicked', () => {
     render(<IngredientForm onSave={() => {}} onCancel={() => {}} />)
-    fireEvent.click(screen.getByRole('button', { name: /저장/ }))
-    expect(screen.getByLabelText(/재료명/)).toBeInTheDocument()
+    const deleteBtns = screen.getAllByRole('button', { name: '행 삭제' })
+    fireEvent.click(deleteBtns[0])
+    const nameInputs = screen.getAllByRole('textbox', { name: '재료명' })
+    expect(nameInputs).toHaveLength(4)
   })
 
-  it('calls onSave with correct ingredient when form is valid', async () => {
+  it('shows validation error when no name is filled', () => {
+    render(<IngredientForm onSave={() => {}} onCancel={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /저장/ }))
+    expect(screen.getByText(/재료명을 하나 이상 입력하세요/)).toBeInTheDocument()
+  })
+
+  it('stays on the form when validation fails', () => {
+    render(<IngredientForm onSave={() => {}} onCancel={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /저장/ }))
+    expect(screen.getAllByRole('textbox', { name: '재료명' })).toHaveLength(5)
+  })
+
+  it('calls onSave with only filled rows', async () => {
     const onSave = vi.fn()
     render(<IngredientForm onSave={onSave} onCancel={() => {}} />)
-    await userEvent.type(screen.getByLabelText(/재료명/), '계란')
-    await userEvent.type(screen.getByLabelText(/수량/), '6')
+    const nameInputs = screen.getAllByRole('textbox', { name: '재료명' })
+    await userEvent.type(nameInputs[0], '계란')
+    await userEvent.type(nameInputs[1], '대파')
     fireEvent.click(screen.getByRole('button', { name: /저장/ }))
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ name: '계란', qty: '6' })
+      expect.arrayContaining([
+        expect.objectContaining({ name: '계란' }),
+        expect.objectContaining({ name: '대파' }),
+      ])
     )
+    expect(onSave.mock.calls[0][0]).toHaveLength(2)
   })
 })

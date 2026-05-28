@@ -43,8 +43,8 @@ export function ChatLayout() {
     setIngrView('list')
   }
 
-  function handleManualSave(ingredient: Ingredient) {
-    addIngredient(ingredient)
+  function handleManualSave(ingredients: Ingredient[]) {
+    addIngredients(ingredients)
     setIngrView('list')
   }
 

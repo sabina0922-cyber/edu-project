@@ -1,17 +1,18 @@
 import { GoogleGenerativeAI, SchemaType, type FunctionDeclaration } from '@google/generative-ai'
+import { fetchRecipeByName } from './recipe-api'
 
 export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export const recipeToolDeclarations: FunctionDeclaration[] = [
   {
     name: 'get_recipe',
-    description: '요리명을 받아 필요한 재료와 기본 정보를 반환합니다.',
+    description: '요리명을 받아 레시피 데이터베이스에서 재료와 조리법을 검색합니다. 한국 요리는 영어 이름(예: "kimchi fried rice")으로 제공하면 더 잘 찾습니다. 데이터베이스에 없으면 AI 자체 지식으로 대체합니다.',
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
         dish_name: {
           type: SchemaType.STRING,
-          description: '요리명',
+          description: '요리명 (한국어 또는 영어)',
         },
       },
       required: ['dish_name'],
@@ -19,31 +20,36 @@ export const recipeToolDeclarations: FunctionDeclaration[] = [
   },
 ]
 
-const RECIPES: Record<string, { ingredients: string[]; servings: string }> = {
-  계란볶음밥: {
-    ingredients: ['계란 2개', '밥 1공기', '대파 약간', '간장 1큰술', '참기름 약간', '소금·후춧가루'],
-    servings: '1인분',
-  },
-  된장찌개: {
-    ingredients: ['두부 150g', '감자 1개', '양파 1/2개', '대파 1/2대', '된장 2큰술', '고춧가루 1작은술', '멸치 육수 500ml'],
-    servings: '2인분',
-  },
-  김치볶음밥: {
-    ingredients: ['김치 150g', '밥 1공기', '계란 1개', '참기름 1큰술', '고추장 1작은술', '간장 1작은술'],
-    servings: '1인분',
-  },
-  라면: {
-    ingredients: ['라면 1봉지', '계란 1개', '대파 약간', '물 550ml'],
-    servings: '1인분',
-  },
-}
+export async function getRecipeResult(dishName: string): Promise<Record<string, unknown>> {
+  // 1. Try RecipeAPI.io first
+  const apiRecipe = await fetchRecipeByName(dishName)
 
-export function getRecipeResult(dishName: string): Record<string, unknown> {
-  const key = Object.keys(RECIPES).find((k) => dishName.includes(k))
-  if (!key) {
-    return { dish_name: dishName, ingredients: ['재료 정보 없음 — 일반적인 레시피를 안내합니다'] }
+  if (apiRecipe) {
+    const ingredients = Array.isArray(apiRecipe.ingredients)
+      ? apiRecipe.ingredients.map((i) =>
+          [i.amount, i.unit, i.name].filter(Boolean).join(' ').trim()
+        )
+      : []
+
+    return {
+      source: 'recipeapi',
+      dish_name: apiRecipe.name,
+      description: apiRecipe.description ?? null,
+      ingredients: ingredients.length > 0 ? ingredients : null,
+      instructions: apiRecipe.instructions ?? null,
+      servings: apiRecipe.servings ?? null,
+      prep_time: apiRecipe.prep_time ?? null,
+      cook_time: apiRecipe.cook_time ?? null,
+    }
   }
-  return { dish_name: key, ...RECIPES[key] }
+
+  // 2. Fallback: tell Gemini to use its own knowledge
+  return {
+    source: 'ai_knowledge',
+    dish_name: dishName,
+    message:
+      '레시피 데이터베이스에서 해당 요리를 찾지 못했습니다. AI가 알고 있는 일반적인 레시피 지식을 바탕으로 재료와 조리법을 안내해 주세요.',
+  }
 }
 
 export function buildSystemInstruction(ingredients?: { name: string; qty: string; unit: string }[]): string {
@@ -51,6 +57,8 @@ export function buildSystemInstruction(ingredients?: { name: string; qty: string
 
 규칙:
 - get_recipe 도구로 재료를 먼저 안내하고, 사용자가 준비됐다고 하면 단계별로 진행하세요.
+- get_recipe 결과의 source가 "recipeapi"이면 그 데이터를 활용하세요.
+- get_recipe 결과의 source가 "ai_knowledge"이면 당신이 알고 있는 레시피로 재료와 조리법을 안내하세요.
 - 없는 재료가 있으면 대체 재료나 생략 가능 여부를 안내하세요.
 - 사용자가 다른 요리를 요청하면 이전 요리 맥락 없이 새로 시작하세요.
 - 응답은 이모지를 적절히 사용해 친근하게 작성하세요.`
