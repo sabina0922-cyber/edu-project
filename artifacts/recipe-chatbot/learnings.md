@@ -1,6 +1,46 @@
 # Recipe Chatbot — Learnings
 
 ---
+category: code-review
+applied: rule
+---
+## bulk add에서 stale closure — functional updater 필수 → .claude/rules/react-functional-updater.md
+
+**상황**: Step 4, code-reviewer가 `use-ingredients.ts`의 `addIngredient` forEach 루프에서 데이터 유실 버그를 발견.
+**판단**: `setIngredients((prev) => ...)` functional updater 패턴으로 수정 + `addIngredients` bulk API 추가. `saveIngredients(next)` 호출을 updater 내부로 이동해 상태와 저장 일관성 확보.
+**다시 마주칠 가능성**: 높음 — React useState에서 배열을 loop로 업데이트하는 패턴은 항상 stale closure 위험. 일반화 가능한 규칙.
+
+---
+category: code-review
+applied: rule
+---
+## 외부 API 루프에는 max iterations guard 필수 → .claude/rules/claude-api-tool-use-guard.md
+
+**상황**: Step 4, route.ts의 agentic tool-use 루프에 무한 루프 가능성 발견.
+**판단**: `MAX_TOOL_ITERATIONS = 5` 가드 추가. tool_use 루프 패턴은 항상 상한 필요.
+**다시 마주칠 가능성**: 높음 — Claude API tool-use loop를 구현할 때마다 재발.
+
+---
+category: code-review
+applied: not-yet
+---
+## error role 메시지는 API 전송 전에 필터링
+
+**상황**: Step 4, use-chat.ts의 오류 메시지가 다음 전송 시 `user` 역할로 Claude에 전달되는 문제.
+**판단**: `filter((m) => m.role !== 'error')` 로 제거. UI 전용 상태(error)와 API 메시지 히스토리를 분리.
+**다시 마주칠 가능성**: 높음 — chat 메시지 타입이 UI 상태를 포함하면 항상 이 문제 발생.
+
+---
+category: tooling
+applied: not-yet
+---
+## Prettier가 let → const 변환으로 로직 버그 유발
+
+**상황**: route.ts에서 `let toolIterations = 0`을 작성했으나 PostToolUse hook이 Prettier를 실행해 `const toolIterations = 0`으로 변환. 카운터가 항상 0이 되는 버그 발생.
+**판단**: 포맷터 실행 후 Read로 파일 확인 후 재편집. 명시적 `let` 의도 있을 때 변수명을 카운터임을 명확히 표현(toolIterationCount).
+**다시 마주칠 가능성**: 중간 — 루프 카운터 패턴에서 재발 가능.
+
+---
 category: tooling
 applied: not-yet
 ---
