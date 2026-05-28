@@ -1,5 +1,4 @@
-import type Anthropic from '@anthropic-ai/sdk'
-import { anthropic, recipeTools, getRecipeResult, buildSystemPrompt } from '@/lib/claude'
+import { genAI, recipeToolDeclarations, getRecipeResult, buildSystemInstruction } from '@/lib/gemini'
 import type { Ingredient } from '@/lib/storage'
 
 export const runtime = 'nodejs'
@@ -32,7 +31,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const systemPrompt = buildSystemPrompt(ingredients)
+  const systemInstruction = buildSystemInstruction(ingredients)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -43,78 +42,56 @@ export async function POST(request: Request) {
       }
 
       try {
-        let currentMessages: Anthropic.MessageParam[] = messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction,
+          tools: [{ functionDeclarations: recipeToolDeclarations }],
+        })
+
+        // Convert message history: all but the last message go into history
+        // The last message is sent via sendMessageStream
+        const history = messages.slice(0, -1).map((m) => ({
+          role: m.role === 'assistant' ? ('model' as const) : ('user' as const),
+          parts: [{ text: m.content }],
         }))
 
-        let continueLoop = true
-        let toolIterationCount = 0
-        const MAX_TOOL_ITERATIONS = 5
+        const lastMessage = messages[messages.length - 1]
+        const chat = model.startChat({ history })
 
-        while (continueLoop) {
-          if (toolIterationCount >= MAX_TOOL_ITERATIONS) break
-          toolIterationCount++
-          continueLoop = false
+        // Send the new user message
+        const firstResult = await chat.sendMessageStream(lastMessage.content)
 
-          const apiStream = anthropic.messages.stream({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 1024,
-            system: systemPrompt,
-            tools: recipeTools,
-            messages: currentMessages,
-          })
+        // Stream any text from the first response
+        for await (const chunk of firstResult.stream) {
+          const text = chunk.text()
+          if (text) send({ type: 'text', text })
+        }
 
-          let toolName: string | null = null
-          let toolId: string | null = null
+        const firstResponse = await firstResult.response
+        const functionCalls = firstResponse.functionCalls()
 
-          for await (const event of apiStream) {
-            if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
-              toolName = event.content_block.name
-              toolId = event.content_block.id
-              send({ type: 'tool_start', name: toolName })
-            } else if (
-              event.type === 'content_block_delta' &&
-              event.delta.type === 'text_delta'
-            ) {
-              send({ type: 'text', text: event.delta.text })
-            } else if (
-              event.type === 'message_delta' &&
-              event.delta.stop_reason === 'tool_use'
-            ) {
-              continueLoop = true
-            }
-          }
+        if (functionCalls && functionCalls.length > 0) {
+          const fc = functionCalls[0]
+          send({ type: 'tool_start', name: fc.name })
 
-          const finalMessage = await apiStream.finalMessage()
+          const recipeData = getRecipeResult((fc.args as { dish_name: string }).dish_name)
 
-          if (continueLoop && toolId && toolName) {
-            send({ type: 'tool_end', name: toolName })
-
-            const toolUseBlock = finalMessage.content.find(
-              (b): b is Extract<typeof b, { type: 'tool_use' }> =>
-                b.type === 'tool_use' && b.id === toolId
-            )
-            const dishName = toolUseBlock
-              ? (toolUseBlock.input as { dish_name: string }).dish_name
-              : ''
-            const result = getRecipeResult(dishName)
-
-            currentMessages = [
-              ...currentMessages,
-              { role: 'assistant', content: finalMessage.content },
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'tool_result',
-                    tool_use_id: toolId,
-                    content: result,
-                  },
-                ],
+          // Send function result and stream the follow-up response
+          const secondResult = await chat.sendMessageStream([
+            {
+              functionResponse: {
+                name: fc.name,
+                response: recipeData,
               },
-            ]
+            },
+          ])
+
+          for await (const chunk of secondResult.stream) {
+            const text = chunk.text()
+            if (text) send({ type: 'text', text })
           }
+
+          send({ type: 'tool_end', name: fc.name })
         }
 
         send({ type: 'done' })

@@ -1,24 +1,27 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { POST } from '../route'
 
-// Mock Anthropic SDK so tests don't make real API calls
-vi.mock('@anthropic-ai/sdk', () => {
+// Mock Gemini SDK so tests don't make real API calls
+vi.mock('@google/generative-ai', () => {
   const mockStream = {
-    [Symbol.asyncIterator]: async function* () {
-      yield { type: 'content_block_delta', delta: { type: 'text_delta', text: '계란볶음밥에 필요한 재료예요' } }
-      yield { type: 'message_delta', delta: { stop_reason: 'end_turn' } }
-      yield { type: 'message_stop' }
-    },
-    finalMessage: async () => ({
-      content: [{ type: 'text', text: '계란볶음밥에 필요한 재료예요' }],
-      stop_reason: 'end_turn',
+    stream: (async function* () {
+      yield { text: () => '계란볶음밥에 필요한 재료예요' }
+    })(),
+    response: Promise.resolve({
+      functionCalls: () => null,
     }),
   }
 
   return {
-    default: class Anthropic {
-      messages = {
-        create: vi.fn().mockResolvedValue(mockStream),
+    GoogleGenerativeAI: class {
+      getGenerativeModel() {
+        return {
+          startChat() {
+            return {
+              sendMessageStream: vi.fn().mockResolvedValue(mockStream),
+            }
+          },
+        }
       }
     },
   }
