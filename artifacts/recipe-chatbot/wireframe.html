@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe: 요리 어시스턴트 챗봇</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --w-bg: #f5f5f5;
+    --w-border: #ccc;
+    --w-text: #555;
+    --w-muted: #aaa;
+    --w-fill: #eee;
+  }
+  * { font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; color: var(--w-text); box-sizing: border-box; }
+  body { background: var(--w-bg); margin: 0; padding: 0; }
+
+  /* ── Wireframe nav ── */
+  nav { position: sticky; top: 0; z-index: 40; background: var(--w-bg); border-bottom: 1px solid var(--w-border); }
+  nav button { cursor: pointer; font-size: 13px; background: none; border: none; padding: 6px 8px; }
+  nav button:hover { background: var(--w-fill); border-radius: 4px; }
+  nav button.active { font-weight: bold; border-bottom: 2px solid var(--w-text); }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── Viewport toggle ── */
+  .vp-toggle button { font-size: 12px; padding: 2px 8px; border: 1px solid var(--w-border); cursor: pointer; background: white; }
+  .vp-toggle button:first-child { border-radius: 4px 0 0 4px; }
+  .vp-toggle button:last-child  { border-radius: 0 4px 4px 0; border-left: none; }
+  .vp-toggle button.active { background: var(--w-text); color: white; }
+
+  /* ── Screen wrappers ── */
+  body.viewport-mobile .screen-content {
+    max-width: 375px !important; margin: 24px auto !important;
+    border: 2px solid var(--w-border); border-radius: 24px;
+    overflow: hidden; background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 0 !important;
+  }
+  body.viewport-desktop .screen-content {
+    max-width: 720px; margin: 32px auto;
+    border: 1px solid var(--w-border); border-radius: 12px;
+    overflow: hidden; background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06); padding: 0;
+  }
+
+  /* ── Chat shell ── */
+  .chat-shell { display: flex; flex-direction: column; height: 600px; background: white; }
+  body.viewport-mobile .chat-shell { height: 667px; }
+  body.viewport-desktop .chat-shell { height: 640px; }
+
+  /* ── Top header row ── */
+  .chat-header {
+    padding: 10px 16px;
+    border-bottom: none;           /* border moved to nav-tabs */
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; background: white;
+  }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    border: 1px solid var(--w-border); background: white;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    position: relative;
+  }
+  .icon-btn:hover { background: var(--w-fill); }
+
+
+  /* ════════════════════════════
+     ── Top nav tabs (채팅 / 재료) ──
+     ════════════════════════════ */
+  .nav-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--w-border);
+    flex-shrink: 0;
+    background: white;
+  }
+  .nav-tab {
+    flex: 1; padding: 9px 0;
+    font-size: 13px; font-weight: 500; text-align: center;
+    border: none; background: transparent; cursor: pointer;
+    color: var(--w-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;           /* overlap the parent border */
+  }
+  .nav-tab.active { color: var(--w-text); font-weight: 700; border-bottom: 2px solid var(--w-text); }
+  .nav-tab:hover:not(.active) { background: var(--w-fill); }
+
+  /* ── Messages area ── */
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  body.viewport-desktop .chat-messages { padding: 24px 28px; gap: 20px; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px; padding: 24px 16px; text-align: center;
+  }
+  .empty-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    border: 1px solid var(--w-border); background: var(--w-fill);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+  }
+  .chips-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 320px; margin-top: 4px; }
+  .chip {
+    padding: 10px 12px; border: 1px solid var(--w-border); border-radius: 10px;
+    font-size: 11px; background: white; cursor: pointer;
+    text-align: left; line-height: 1.4; color: var(--w-text);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .chip:hover { background: var(--w-fill); }
+  .chip i { display: block; }
+
+  /* Food category icons row */
+  .food-cats { display: flex; justify-content: center; gap: 18px; margin-top: 2px; }
+  .cat-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 10px; border: 1px solid var(--w-border); border-radius: 12px;
+    background: white; cursor: pointer; min-width: 52px;
+  }
+  .cat-btn:hover { background: var(--w-fill); }
+  .cat-btn span { font-size: 10px; color: var(--w-muted); }
+
+  /* ── Assistant message (no bubble) ── */
+  .msg-assistant { display: flex; gap: 10px; align-items: flex-start; }
+  .ai-icon {
+    width: 24px; height: 24px; flex-shrink: 0; border-radius: 6px;
+    border: 1px solid var(--w-border); background: var(--w-fill);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; margin-top: 1px;
+  }
+  .ai-text { font-size: 13px; line-height: 1.75; white-space: pre-wrap; flex: 1; padding-top: 2px; }
+
+  /* ── Tool badge ── */
+  .tool-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--w-muted);
+    padding: 3px 9px; border: 1px dashed var(--w-border); border-radius: 5px; margin-bottom: 8px;
+  }
+
+  /* ── Thinking dots ── */
+  .thinking { display: flex; gap: 4px; align-items: center; padding: 6px 0; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--w-border); animation: bounce 1.2s ease-in-out infinite; }
+  .dot:nth-child(2) { animation-delay: 0.15s; }
+  .dot:nth-child(3) { animation-delay: 0.30s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-4px); } }
+
+  /* ── Error row ── */
+  .msg-error { display: flex; gap: 10px; align-items: flex-start; }
+  .error-icon {
+    width: 24px; height: 24px; flex-shrink: 0; border-radius: 6px;
+    border: 1px dashed var(--w-border); background: var(--w-fill);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; margin-top: 1px;
+  }
+  .error-text { font-size: 13px; line-height: 1.75; flex: 1; padding-top: 2px; color: var(--w-muted); font-style: italic; }
+
+  /* ── User message (right-aligned pill) ── */
+  .msg-user { display: flex; justify-content: flex-end; }
+  .user-bubble {
+    background: var(--w-fill); border: 1px solid var(--w-border);
+    border-radius: 18px 18px 4px 18px;
+    padding: 10px 16px; max-width: 76%; font-size: 13px; line-height: 1.6;
+  }
+
+  /* ── Context divider ── */
+  .ctx-divider { text-align: center; font-size: 11px; color: var(--w-muted); display: flex; align-items: center; gap: 8px; }
+  .ctx-divider::before, .ctx-divider::after { content: ''; flex: 1; height: 1px; background: var(--w-border); }
+
+  /* ── Input area ── */
+  .input-wrap { padding: 10px 12px 10px; flex-shrink: 0; background: white; }
+  body.viewport-desktop .input-wrap { padding: 10px 20px 10px; }
+  .input-container { border: 1px solid var(--w-border); border-radius: 14px; padding: 10px 10px 10px 16px; display: flex; align-items: flex-end; gap: 6px; background: white; }
+  .input-container.disabled { background: var(--w-fill); }
+  .input-field { flex: 1; border: none; outline: none; font-size: 13px; line-height: 1.5; background: transparent; color: var(--w-text); resize: none; min-height: 22px; font-family: inherit; }
+  .input-field::placeholder { color: var(--w-muted); }
+  .input-field:disabled { color: var(--w-muted); }
+  .send-btn { width: 32px; height: 32px; border-radius: 8px; background: var(--w-text); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .send-btn svg, .send-btn i { color: white !important; }
+  .send-btn.disabled { background: var(--w-fill); cursor: not-allowed; }
+  .send-btn.disabled svg, .send-btn.disabled i { color: var(--w-muted) !important; }
+
+  /* ════════════════════════════
+     ── Bottom action bar (재료 추가) ──
+     Screen 5에만 사용
+     ════════════════════════════ */
+  .bottom-action-bar {
+    padding: 12px 16px 14px;
+    border-top: 1px solid var(--w-border);
+    flex-shrink: 0;
+    background: white;
+  }
+
+  /* ── Ingredient screens ── */
+  .page-content { flex: 1; overflow-y: auto; background: var(--w-bg); }
+
+  /* List items */
+  .ingr-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; background: white; border-bottom: 1px solid var(--w-border);
+  }
+  .ingr-item:first-child { border-top: 1px solid var(--w-border); }
+  .ingr-info { flex: 1; }
+  .ingr-name { font-size: 13px; font-weight: 600; }
+  .ingr-meta { font-size: 11px; color: var(--w-muted); margin-top: 1px; }
+  .expiry-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
+  .expiry-urgent { border: 1px solid var(--w-border); color: var(--w-text); background: var(--w-fill); }
+  .expiry-soon   { border: 1px dashed var(--w-border); color: var(--w-muted); }
+  .expiry-ok     { border: 1px solid var(--w-fill);   color: var(--w-muted); }
+
+  /* Section header */
+  .section-header { padding: 10px 16px 6px; font-size: 11px; font-weight: 600; color: var(--w-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Add method cards */
+  .method-card { margin: 0 16px 12px; padding: 20px 16px; border: 1px solid var(--w-border); border-radius: 12px; background: white; display: flex; align-items: center; gap: 14px; cursor: pointer; }
+  .method-card:hover { background: var(--w-fill); }
+  .method-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; border: 1px solid var(--w-border); background: var(--w-fill); display: flex; align-items: center; justify-content: center; }
+  .method-title { font-size: 14px; font-weight: 600; }
+  .method-desc  { font-size: 11px; color: var(--w-muted); margin-top: 2px; line-height: 1.4; }
+
+  /* Receipt preview */
+  .receipt-preview { margin: 12px 16px; height: 130px; border: 2px dashed var(--w-border); border-radius: 10px; background: var(--w-fill); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--w-muted); font-size: 12px; cursor: pointer; }
+
+  /* Parsed rows */
+  .parsed-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: white; border-bottom: 1px solid var(--w-border); }
+  .parsed-row:first-child { border-top: 1px solid var(--w-border); }
+  .parsed-check { width: 18px; height: 18px; flex-shrink: 0; border: 1px solid var(--w-border); border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; }
+  .parsed-check.checked { background: var(--w-fill); }
+  .parsed-name-qty { flex: 1; }
+  .parsed-name { font-size: 13px; font-weight: 500; }
+  .parsed-qty  { font-size: 11px; color: var(--w-muted); }
+  .expiry-input { font-size: 11px; padding: 3px 7px; border: 1px solid var(--w-border); border-radius: 5px; color: var(--w-muted); background: white; width: 88px; font-family: inherit; }
+
+  /* Form */
+  .form-field { padding: 0 16px 14px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--w-muted); margin-bottom: 5px; display: block; }
+  .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--w-border); border-radius: 8px; font-size: 13px; background: white; outline: none; font-family: inherit; color: var(--w-text); }
+  .form-input::placeholder { color: var(--w-muted); }
+  .form-row { display: flex; gap: 8px; padding: 0 16px 14px; }
+  .form-row .form-field { padding: 0; flex: 1; }
+
+  /* Buttons */
+  .primary-btn { width: 100%; padding: 12px; background: var(--w-text); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .primary-btn:hover { opacity: 0.85; }
+  .primary-btn.secondary { background: white; color: var(--w-text); border: 1px solid var(--w-border); margin-top: 8px; }
+  .primary-btn i { color: white !important; vertical-align: middle; }
+
+  /* Empty ingredients */
+  .ingr-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 48px 24px; text-align: center; color: var(--w-muted); font-size: 13px; }
+
+  /* ── Screen Notes ── */
+  .screen-notes { background: #fffde7; border-left: 3px solid #ffd54f; padding: 12px 16px; margin: 12px 16px 16px; font-size: 13px; border-radius: 0 4px 4px 0; }
+  .screen-notes summary { cursor: pointer; font-weight: bold; font-size: 12px; color: #b0a050; text-transform: uppercase; letter-spacing: 0.05em; }
+  .screen-notes ul { margin: 6px 0 0 16px; padding: 0; color: #777; }
+  .screen-notes li { margin: 3px 0; }
+</style>
+</head>
+<body class="viewport-mobile">
+
+<nav class="flex items-center gap-1 px-3 py-2 flex-wrap">
+  <span class="text-xs px-1" style="color:var(--w-muted)">wireframe</span>
+  <span class="text-xs" style="color:var(--w-border)">│</span>
+  <span class="text-xs px-1 font-bold" style="color:var(--w-muted)">채팅</span>
+  <button id="nav-0" onclick="show(0)" class="px-2 py-1">0. 첫 진입</button>
+  <button id="nav-1" onclick="show(1)" class="px-2 py-1">1. 스트리밍</button>
+  <button id="nav-2" onclick="show(2)" class="px-2 py-1">2. 단계 진행</button>
+  <button id="nav-3" onclick="show(3)" class="px-2 py-1">3. 재료 없음</button>
+  <button id="nav-4" onclick="show(4)" class="px-2 py-1">4. 오류</button>
+  <span class="text-xs" style="color:var(--w-border)">│</span>
+  <span class="text-xs px-1 font-bold" style="color:var(--w-muted)">재료</span>
+  <button id="nav-5" onclick="show(5)" class="px-2 py-1">5. 재료 목록</button>
+  <button id="nav-6" onclick="show(6)" class="px-2 py-1">6. 추가 방법</button>
+  <button id="nav-7" onclick="show(7)" class="px-2 py-1">7. 스캔 결과</button>
+  <button id="nav-8" onclick="show(8)" class="px-2 py-1">8. 직접 입력</button>
+  <div class="vp-toggle flex ml-auto">
+    <button id="vp-desktop" onclick="setViewport('desktop')">Desktop</button>
+    <button id="vp-mobile" onclick="setViewport('mobile')" class="active">Mobile</button>
+  </div>
+</nav>
+
+
+<!-- ══════════════════════════════════════
+     재사용 컴포넌트 메모:
+     ┌─────────────────────────────┐
+     │  chat-header (title+icons)  │  ← 앱 제목 + 액션 아이콘
+     ├─────────────────────────────┤
+     │  nav-tabs [채팅] [재료]     │  ← 상단 탭 (모든 화면 공유)
+     ├─────────────────────────────┤
+     │  content (flex-1)           │
+     ├─────────────────────────────┤
+     │  input-wrap  OR             │  ← 채팅: 입력창
+     │  bottom-action-bar          │  ← 재료 목록: 추가 버튼
+     └─────────────────────────────┘
+     ══════════════════════════════════════ -->
+
+
+<!-- ══════════════════ Screen 0 — 첫 진입 ══════════════════ -->
+<div id="screen-0" class="screen" data-scenario="scenario-1, scenario-6">
+  <div class="screen-content">
+    <div class="chat-shell">
+
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <div style="width:20px;height:20px;border-radius:5px;border:1px solid var(--w-border);background:var(--w-fill);display:flex;align-items:center;justify-content:center;font-size:11px;">🍳</div>
+          <span class="font-bold text-sm">요리 어시스턴트</span>
+        </div>
+        <div class="icon-btn"><i data-lucide="pencil" style="width:14px;height:14px;"></i></div>
+      </div>
+
+      <!-- 상단 탭: 채팅 활성 -->
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="show(0)">채팅</button>
+        <button class="nav-tab" onclick="show(5)">재료</button>
+      </div>
+
+      <div class="chat-messages" style="justify-content:center;">
+        <div class="empty-state">
+
+          <!-- Hero -->
+          <div class="empty-icon"><i data-lucide="chef-hat" style="width:26px;height:26px;"></i></div>
+          <div>
+            <div class="font-bold text-sm" style="margin-bottom:4px;">요리 어시스턴트</div>
+            <div class="text-xs" style="color:var(--w-muted);">재료를 알려주시거나 요리명을 말씀해 주세요</div>
+          </div>
+
+          <!-- 카테고리 quick-pick -->
+          <div class="food-cats">
+            <button class="cat-btn">
+              <i data-lucide="soup" style="width:20px;height:20px;"></i>
+              <span>찌개</span>
+            </button>
+            <button class="cat-btn">
+              <i data-lucide="flame" style="width:20px;height:20px;"></i>
+              <span>볶음</span>
+            </button>
+            <button class="cat-btn">
+              <i data-lucide="beef" style="width:20px;height:20px;"></i>
+              <span>구이</span>
+            </button>
+            <button class="cat-btn">
+              <i data-lucide="salad" style="width:20px;height:20px;"></i>
+              <span>샐러드</span>
+            </button>
+          </div>
+
+          <!-- 제안 칩 (아이콘 포함) -->
+          <div class="chips-grid">
+            <button class="chip">
+              <i data-lucide="egg" style="width:15px;height:15px;"></i>
+              계란볶음밥<br>만들어줘
+            </button>
+            <button class="chip">
+              <i data-lucide="package" style="width:15px;height:15px;"></i>
+              냉장고 재료로<br>뭐 만들지?
+            </button>
+            <button class="chip">
+              <i data-lucide="soup" style="width:15px;height:15px;"></i>
+              된장찌개<br>레시피 알려줘
+            </button>
+            <button class="chip">
+              <i data-lucide="utensils" style="width:15px;height:15px;"></i>
+              초보도 쉬운<br>한식 추천해줘
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="input-wrap">
+        <div class="input-container">
+          <textarea class="input-field" placeholder="요리명이나 재료를 입력하세요..." rows="1"></textarea>
+          <button class="send-btn disabled"><i data-lucide="arrow-up" style="width:15px;height:15px;"></i></button>
+        </div>
+      </div>
+
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>트리거: 페이지 최초 로드 / 새로고침 / 연필(새 대화) 버튼</li>
+        <li>상단 탭 "채팅" 활성 | "재료" 탭 클릭 → Screen 5</li>
+        <li>제안 칩 클릭 → 텍스트 입력창 채워지고 전송</li>
+        <li>입력 없으면 전송 버튼 disabled</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 1 — 스트리밍 중 ══════════════════ -->
+<div id="screen-1" class="screen" data-scenario="scenario-2">
+  <div class="screen-content">
+    <div class="chat-shell">
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <div style="width:20px;height:20px;border-radius:5px;border:1px solid var(--w-border);background:var(--w-fill);display:flex;align-items:center;justify-content:center;font-size:11px;">🍳</div>
+          <span class="font-bold text-sm">요리 어시스턴트</span>
+        </div>
+        <div class="icon-btn"><i data-lucide="pencil" style="width:14px;height:14px;"></i></div>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="show(0)">채팅</button>
+        <button class="nav-tab" onclick="show(5)">재료</button>
+      </div>
+      <div class="chat-messages">
+        <div class="msg-user"><div class="user-bubble">계란볶음밥 만들어줘</div></div>
+        <div class="msg-assistant">
+          <div class="ai-icon">🍳</div>
+          <div style="flex:1; padding-top:2px;">
+            <div class="tool-badge"><i data-lucide="wrench" style="width:10px;height:10px;"></i> get_recipe("계란볶음밥") 호출 중...</div>
+            <div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="input-wrap">
+        <div class="input-container disabled">
+          <textarea class="input-field" placeholder="응답을 기다리는 중..." rows="1" disabled></textarea>
+          <button class="send-btn disabled"><i data-lucide="square" style="width:13px;height:13px;"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>tool badge → three dots 순서로 표시</li>
+        <li>전송 버튼 → Stop(■) 아이콘, 입력창 비활성(불변 규칙)</li>
+        <li>상단 탭 "재료" 클릭 가능 → Screen 5 이동</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 2 — 단계별 진행 ══════════════════ -->
+<div id="screen-2" class="screen" data-scenario="scenario-2, scenario-3, scenario-5">
+  <div class="screen-content">
+    <div class="chat-shell">
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <div style="width:20px;height:20px;border-radius:5px;border:1px solid var(--w-border);background:var(--w-fill);display:flex;align-items:center;justify-content:center;font-size:11px;">🍳</div>
+          <span class="font-bold text-sm">요리 어시스턴트</span>
+        </div>
+        <div class="icon-btn"><i data-lucide="pencil" style="width:14px;height:14px;"></i></div>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="show(0)">채팅</button>
+        <button class="nav-tab" onclick="show(5)">재료</button>
+      </div>
+      <div class="chat-messages">
+        <div class="msg-user"><div class="user-bubble">계란볶음밥 만들어줘</div></div>
+        <div class="msg-assistant">
+          <div class="ai-icon">🍳</div>
+          <div style="flex:1; padding-top:2px;">
+            <div class="tool-badge"><i data-lucide="check" style="width:10px;height:10px;"></i> get_recipe("계란볶음밥") 완료</div>
+            <div class="ai-text">계란볶음밥에 필요한 재료예요 🍳
+
+• 계란 2개  • 밥 1공기  • 대파 약간
+• 간장 1큰술  • 참기름 약간  • 소금, 후춧가루
+
+재료 준비되셨나요? 😊</div>
+          </div>
+        </div>
+        <div class="msg-user"><div class="user-bubble">준비됐어요!</div></div>
+        <div class="msg-assistant">
+          <div class="ai-icon">🍳</div>
+          <div class="ai-text">좋아요, 시작해볼게요! 🎉
+
+1단계. 계란 2개를 그릇에 풀어주세요.
+소금 한 꼬집 넣으면 더 맛있어요!
+
+완료하셨으면 알려주세요 👍</div>
+        </div>
+      </div>
+      <div class="input-wrap">
+        <div class="input-container">
+          <textarea class="input-field" placeholder="완료했어요 / 질문 입력..." rows="1"></textarea>
+          <button class="send-btn"><i data-lucide="arrow-up" style="width:15px;height:15px;"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>tool badge "✓ 완료"로 업데이트 — tool call 사이클 완성</li>
+        <li>"완료했어요" → 다음 단계 | "재료 없어요" → Screen 3 | 새 요리명 → 시나리오 5</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 3 — 없는 재료 ══════════════════ -->
+<div id="screen-3" class="screen" data-scenario="scenario-4">
+  <div class="screen-content">
+    <div class="chat-shell">
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <div style="width:20px;height:20px;border-radius:5px;border:1px solid var(--w-border);background:var(--w-fill);display:flex;align-items:center;justify-content:center;font-size:11px;">🍳</div>
+          <span class="font-bold text-sm">요리 어시스턴트</span>
+        </div>
+        <div class="icon-btn"><i data-lucide="pencil" style="width:14px;height:14px;"></i></div>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="show(0)">채팅</button>
+        <button class="nav-tab" onclick="show(5)">재료</button>
+      </div>
+      <div class="chat-messages">
+        <div class="ctx-divider">이전 대화 — 재료 목록 표시됨</div>
+        <div class="msg-user"><div class="user-bubble">참기름이 없어요</div></div>
+        <div class="msg-assistant">
+          <div class="ai-icon">🍳</div>
+          <div class="ai-text">참기름이 없어도 괜찮아요! 🙆
+
+→ 들기름으로 대체 (풍미가 비슷해요)
+→ 없으면 생략해도 충분해요
+
+그냥 진행할까요? 😊</div>
+        </div>
+      </div>
+      <div class="input-wrap">
+        <div class="input-container">
+          <textarea class="input-field" placeholder="네, 진행해요 / 다른 질문..." rows="1"></textarea>
+          <button class="send-btn"><i data-lucide="arrow-up" style="width:15px;height:15px;"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>대체 재료 안내 후 다음 단계 유도 문장으로 끝남</li>
+        <li>전환: "네 진행해요" → Screen 2 계속</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 4 — API 오류 ══════════════════ -->
+<div id="screen-4" class="screen" data-scenario="scenario-8">
+  <div class="screen-content">
+    <div class="chat-shell">
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <div style="width:20px;height:20px;border-radius:5px;border:1px solid var(--w-border);background:var(--w-fill);display:flex;align-items:center;justify-content:center;font-size:11px;">🍳</div>
+          <span class="font-bold text-sm">요리 어시스턴트</span>
+        </div>
+        <div class="icon-btn"><i data-lucide="pencil" style="width:14px;height:14px;"></i></div>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="show(0)">채팅</button>
+        <button class="nav-tab" onclick="show(5)">재료</button>
+      </div>
+      <div class="chat-messages">
+        <div class="msg-user"><div class="user-bubble">된장찌개 만들어줘</div></div>
+        <div class="msg-error">
+          <div class="error-icon"><i data-lucide="alert-triangle" style="width:12px;height:12px;color:var(--w-muted);"></i></div>
+          <div class="error-text">오류가 발생했습니다. 잠시 후 다시 시도해주세요.</div>
+        </div>
+      </div>
+      <div class="input-wrap">
+        <div class="input-container">
+          <textarea class="input-field" placeholder="다시 시도해보세요..." rows="1"></textarea>
+          <button class="send-btn"><i data-lucide="arrow-up" style="width:15px;height:15px;"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>에러: ⚠ 아이콘 + 이탤릭 muted 텍스트로 구분</li>
+        <li>오류 후 입력창 즉시 재활성화</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 5 — 재료 목록 ══════════════════ -->
+<div id="screen-5" class="screen">
+  <div class="screen-content">
+    <div class="chat-shell">
+
+      <!-- 헤더: 탭과 동일 레벨, 타이틀만 -->
+      <div class="chat-header">
+        <span class="font-bold text-sm">내 재료</span>
+        <span style="font-size:11px;color:var(--w-muted);">5개</span>
+      </div>
+
+      <!-- 상단 탭: 재료 활성 -->
+      <div class="nav-tabs">
+        <button class="nav-tab" onclick="show(0)">채팅</button>
+        <button class="nav-tab active" onclick="show(5)">재료</button>
+      </div>
+
+      <!-- 재료 목록 -->
+      <div class="page-content">
+        <div class="section-header">⚠ 곧 만료</div>
+        <div class="ingr-item">
+          <div class="ingr-info"><div class="ingr-name">계란</div><div class="ingr-meta">6개 · 2026.05.31</div></div>
+          <span class="expiry-badge expiry-urgent">D-3</span>
+          <button style="border:none;background:none;cursor:pointer;padding:2px;"><i data-lucide="trash-2" style="width:14px;height:14px;color:var(--w-muted);"></i></button>
+        </div>
+        <div class="ingr-item">
+          <div class="ingr-info"><div class="ingr-name">두부</div><div class="ingr-meta">300g · 2026.06.02</div></div>
+          <span class="expiry-badge expiry-urgent">D-5</span>
+          <button style="border:none;background:none;cursor:pointer;padding:2px;"><i data-lucide="trash-2" style="width:14px;height:14px;color:var(--w-muted);"></i></button>
+        </div>
+
+        <div class="section-header" style="margin-top:8px;">보관 중</div>
+        <div class="ingr-item">
+          <div class="ingr-info"><div class="ingr-name">대파</div><div class="ingr-meta">1단 · 2026.06.07</div></div>
+          <span class="expiry-badge expiry-soon">D-10</span>
+          <button style="border:none;background:none;cursor:pointer;padding:2px;"><i data-lucide="trash-2" style="width:14px;height:14px;color:var(--w-muted);"></i></button>
+        </div>
+        <div class="ingr-item">
+          <div class="ingr-info"><div class="ingr-name">간장</div><div class="ingr-meta">500ml · 2026.12.01</div></div>
+          <span class="expiry-badge expiry-ok">D-187</span>
+          <button style="border:none;background:none;cursor:pointer;padding:2px;"><i data-lucide="trash-2" style="width:14px;height:14px;color:var(--w-muted);"></i></button>
+        </div>
+        <div class="ingr-item">
+          <div class="ingr-info"><div class="ingr-name">참기름</div><div class="ingr-meta">200ml · 2027.01.15</div></div>
+          <span class="expiry-badge expiry-ok">D-232</span>
+          <button style="border:none;background:none;cursor:pointer;padding:2px;"><i data-lucide="trash-2" style="width:14px;height:14px;color:var(--w-muted);"></i></button>
+        </div>
+
+        <div style="margin:12px 16px;padding:10px 14px;border:1px dashed var(--w-border);border-radius:8px;font-size:12px;color:var(--w-muted);line-height:1.5;">
+          💡 채팅에서 <strong style="color:var(--w-text)">"냉장고 재료로 만들어줘"</strong>라고 하면 저장된 재료를 자동으로 활용해요
+        </div>
+      </div>
+
+      <!-- 하단 추가 버튼 -->
+      <div class="bottom-action-bar">
+        <button class="primary-btn" onclick="show(6)" style="display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i data-lucide="plus" style="width:16px;height:16px;color:white;"></i>
+          재료 추가
+        </button>
+      </div>
+
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>트리거: 상단 탭 "재료" 클릭</li>
+        <li>섹션 분리: 곧 만료(D-7 이내) / 보관 중</li>
+        <li>하단 "재료 추가" 버튼 → Screen 6(추가 방법 선택)</li>
+        <li>삭제(🗑) 버튼: 해당 항목 제거 + localStorage 갱신</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 6 — 추가 방법 선택 ══════════════════ -->
+<div id="screen-6" class="screen">
+  <div class="screen-content">
+    <div class="chat-shell">
+
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <button onclick="show(5)" style="border:none;background:none;cursor:pointer;padding:0;display:flex;"><i data-lucide="chevron-left" style="width:18px;height:18px;"></i></button>
+          <span class="font-bold text-sm">재료 추가</span>
+        </div>
+      </div>
+
+      <!-- 상단 탭: 재료 활성 -->
+      <div class="nav-tabs">
+        <button class="nav-tab" onclick="show(0)">채팅</button>
+        <button class="nav-tab active" onclick="show(5)">재료</button>
+      </div>
+
+      <div class="page-content" style="padding:20px 0;">
+        <div style="padding:0 16px 16px;font-size:12px;color:var(--w-muted);">어떻게 추가할까요?</div>
+
+        <div class="method-card" onclick="show(7)">
+          <div class="method-icon"><i data-lucide="scan" style="width:22px;height:22px;"></i></div>
+          <div>
+            <div class="method-title">영수증 스캔</div>
+            <div class="method-desc">마트 영수증을 촬영하면<br>재료를 자동으로 파싱해요</div>
+          </div>
+          <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--w-muted);margin-left:auto;"></i>
+        </div>
+
+        <div class="method-card" onclick="show(8)">
+          <div class="method-icon"><i data-lucide="pencil-line" style="width:22px;height:22px;"></i></div>
+          <div>
+            <div class="method-title">직접 입력</div>
+            <div class="method-desc">재료명, 수량, 유통기한을<br>직접 입력해요</div>
+          </div>
+          <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--w-muted);margin-left:auto;"></i>
+        </div>
+      </div>
+
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>트리거: Screen 5 하단 "재료 추가" 버튼 클릭</li>
+        <li>← 버튼 → Screen 5 복귀</li>
+        <li>하단 액션 버튼 없음 — 카드 자체가 진입 버튼</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 7 — 영수증 스캔 결과 ══════════════════ -->
+<div id="screen-7" class="screen">
+  <div class="screen-content">
+    <div class="chat-shell">
+
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <button onclick="show(6)" style="border:none;background:none;cursor:pointer;padding:0;display:flex;"><i data-lucide="chevron-left" style="width:18px;height:18px;"></i></button>
+          <span class="font-bold text-sm">영수증 스캔</span>
+        </div>
+        <span style="font-size:11px;color:var(--w-muted);">5개 인식됨</span>
+      </div>
+
+      <!-- 상단 탭: 재료 활성 -->
+      <div class="nav-tabs">
+        <button class="nav-tab" onclick="show(0)">채팅</button>
+        <button class="nav-tab active" onclick="show(5)">재료</button>
+      </div>
+
+      <div class="page-content">
+        <div class="receipt-preview" onclick="show(6)">
+          <i data-lucide="file-text" style="width:28px;height:28px;color:var(--w-muted);"></i>
+          <span>마트_영수증_0528.jpg</span>
+          <span style="font-size:10px;">탭하여 다시 촬영</span>
+        </div>
+
+        <div style="padding:0 16px 6px;font-size:12px;color:var(--w-muted);">저장할 재료를 선택하고 유통기한을 입력하세요</div>
+
+        <div class="parsed-row">
+          <div class="parsed-check checked"><i data-lucide="check" style="width:11px;height:11px;"></i></div>
+          <div class="parsed-name-qty"><div class="parsed-name">계란</div><div class="parsed-qty">6구 (1판)</div></div>
+          <input class="expiry-input" type="text" value="2026.05.31" />
+        </div>
+        <div class="parsed-row">
+          <div class="parsed-check checked"><i data-lucide="check" style="width:11px;height:11px;"></i></div>
+          <div class="parsed-name-qty"><div class="parsed-name">두부</div><div class="parsed-qty">300g</div></div>
+          <input class="expiry-input" type="text" placeholder="유통기한" />
+        </div>
+        <div class="parsed-row">
+          <div class="parsed-check checked"><i data-lucide="check" style="width:11px;height:11px;"></i></div>
+          <div class="parsed-name-qty"><div class="parsed-name">대파</div><div class="parsed-qty">1단</div></div>
+          <input class="expiry-input" type="text" placeholder="유통기한" />
+        </div>
+        <div class="parsed-row" style="opacity:0.5;">
+          <div class="parsed-check"></div>
+          <div class="parsed-name-qty"><div class="parsed-name">비닐봉지</div><div class="parsed-qty">5매</div></div>
+          <input class="expiry-input" type="text" placeholder="해당없음" disabled />
+        </div>
+        <div class="parsed-row">
+          <div class="parsed-check checked"><i data-lucide="check" style="width:11px;height:11px;"></i></div>
+          <div class="parsed-name-qty"><div class="parsed-name">간장</div><div class="parsed-qty">500ml</div></div>
+          <input class="expiry-input" type="text" value="2026.12.01" />
+        </div>
+
+        <div style="padding:14px 16px 6px;">
+          <button class="primary-btn" onclick="show(5)">선택한 재료 저장 (4개)</button>
+          <button class="primary-btn secondary" onclick="show(6)">다시 스캔</button>
+        </div>
+        <div style="height:14px;"></div>
+      </div>
+
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>mock 파싱 결과 — 실제 OCR 없음, 하드코딩 데이터</li>
+        <li>체크박스: 비식품(비닐봉지)은 기본 해제</li>
+        <li>저장 버튼 → Screen 5, 항목 추가됨</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ Screen 8 — 직접 입력 ══════════════════ -->
+<div id="screen-8" class="screen">
+  <div class="screen-content">
+    <div class="chat-shell">
+
+      <div class="chat-header">
+        <div class="flex items-center gap-2">
+          <button onclick="show(6)" style="border:none;background:none;cursor:pointer;padding:0;display:flex;"><i data-lucide="chevron-left" style="width:18px;height:18px;"></i></button>
+          <span class="font-bold text-sm">재료 직접 입력</span>
+        </div>
+      </div>
+
+      <!-- 상단 탭: 재료 활성 -->
+      <div class="nav-tabs">
+        <button class="nav-tab" onclick="show(0)">채팅</button>
+        <button class="nav-tab active" onclick="show(5)">재료</button>
+      </div>
+
+      <div class="page-content" style="padding-top:16px;">
+        <div class="form-field">
+          <label class="form-label">재료명 *</label>
+          <input class="form-input" type="text" placeholder="예: 계란, 대파, 간장..." />
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label">수량 *</label>
+            <input class="form-input" type="text" placeholder="예: 6" />
+          </div>
+          <div class="form-field">
+            <label class="form-label">단위</label>
+            <select class="form-input" style="appearance:none;cursor:pointer;">
+              <option>개</option><option>g</option><option>ml</option>
+              <option>단</option><option>묶음</option><option>개입</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">유통기한</label>
+          <input class="form-input" type="text" placeholder="YYYY.MM.DD (선택)" />
+          <div style="font-size:11px;color:var(--w-muted);margin-top:4px;">입력하면 만료 알림을 표시해요</div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">메모 <span style="font-weight:400;">(선택)</span></label>
+          <input class="form-input" type="text" placeholder="예: 냉동 보관, 개봉 후 빨리 사용" />
+        </div>
+        <div style="padding:0 16px 14px;">
+          <button class="primary-btn" onclick="show(5)">재료 저장</button>
+        </div>
+        <div style="height:14px;"></div>
+      </div>
+
+    </div>
+    <div class="screen-notes">
+      <details open><summary>Notes</summary><ul>
+        <li>재료명·수량 필수, 유통기한·메모 선택</li>
+        <li>필수 필드 비어 있으면 저장 불가 + 해당 필드 근처 안내</li>
+        <li>"재료 저장" → Screen 5, 항목 추가됨</li>
+      </ul></details>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(b) { b.classList.remove('active'); });
+  var btn = document.getElementById('nav-' + id);
+  if (btn) btn.classList.add('active');
+}
+function setViewport(mode) {
+  document.body.classList.remove('viewport-mobile', 'viewport-desktop');
+  document.body.classList.add('viewport-' + mode);
+  document.querySelectorAll('.vp-toggle button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('vp-' + mode).classList.add('active');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  show(0);
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
