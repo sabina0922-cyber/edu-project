@@ -2,9 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useChat } from './use-chat'
 
+const mockIngredients = [
+  { id: '1', name: '계란', qty: '6', unit: '개' },
+  { id: '2', name: '대파', qty: '1', unit: '단' },
+]
+const mockGetIngredients = () => [] as typeof mockIngredients
+
 // Mock getIngredients so localStorage is not needed
 vi.mock('@/lib/storage', () => ({
-  getIngredients: () => [],
+  getIngredients: () => mockGetIngredients(),
 }))
 
 function makeSseStream(events: string[]): Response {
@@ -90,5 +96,23 @@ describe('useChat', () => {
       result.current.clearMessages()
     })
     expect(result.current.messages).toHaveLength(0)
+  })
+
+  it('sends ingredients to API in request body', async () => {
+    // Override the mock for this test using a spy on the module
+    const storage = await import('@/lib/storage')
+    vi.spyOn(storage, 'getIngredients').mockReturnValue(mockIngredients)
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+      makeSseStream([JSON.stringify({ type: 'done' })])
+    )
+    const { result } = renderHook(() => useChat())
+    await act(async () => {
+      await result.current.sendMessage('냉장고 재료로 만들어줘')
+    })
+    const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string)
+    expect(body.ingredients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: '계란' }),
+    ]))
   })
 })
