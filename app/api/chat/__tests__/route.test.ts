@@ -3,6 +3,7 @@ import { POST } from '../route'
 
 // Mock Gemini SDK so tests don't make real API calls
 vi.mock('@google/generative-ai', () => {
+  const SchemaType = { OBJECT: 'OBJECT', STRING: 'STRING' }
   const mockStream = {
     stream: (async function* () {
       yield { text: () => '계란볶음밥에 필요한 재료예요' }
@@ -13,6 +14,7 @@ vi.mock('@google/generative-ai', () => {
   }
 
   return {
+    SchemaType,
     GoogleGenerativeAI: class {
       getGenerativeModel() {
         return {
