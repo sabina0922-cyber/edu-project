@@ -17,8 +17,19 @@ export async function POST(request: Request) {
     ingredients?: Ingredient[]
   }
 
+  const MAX_MESSAGES = 40
+  const MAX_CONTENT_LENGTH = 4000
+
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: 'messages is required' }, { status: 400 })
+  }
+  if (messages.length > MAX_MESSAGES) {
+    return Response.json({ error: 'Too many messages' }, { status: 400 })
+  }
+  for (const m of messages) {
+    if (typeof m.content === 'string' && m.content.length > MAX_CONTENT_LENGTH) {
+      return Response.json({ error: 'Message content too long' }, { status: 400 })
+    }
   }
 
   const systemPrompt = buildSystemPrompt(ingredients)
@@ -38,8 +49,12 @@ export async function POST(request: Request) {
         }))
 
         let continueLoop = true
+        let toolIterationCount = 0
+        const MAX_TOOL_ITERATIONS = 5
 
         while (continueLoop) {
+          if (toolIterationCount >= MAX_TOOL_ITERATIONS) break
+          toolIterationCount++
           continueLoop = false
 
           const apiStream = anthropic.messages.stream({

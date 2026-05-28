@@ -9,10 +9,22 @@ export interface Ingredient {
 
 const KEY = 'recipe-chatbot:ingredients:v1'
 
+function isValidIngredient(val: unknown): val is Ingredient {
+  return (
+    typeof val === 'object' &&
+    val !== null &&
+    typeof (val as Record<string, unknown>).id === 'string' &&
+    typeof (val as Record<string, unknown>).name === 'string'
+  )
+}
+
 export function getIngredients(): Ingredient[] {
   try {
     const data = localStorage.getItem(KEY)
-    return data ? (JSON.parse(data) as Ingredient[]) : []
+    if (!data) return []
+    const parsed: unknown = JSON.parse(data)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(isValidIngredient)
   } catch {
     return []
   }

@@ -27,7 +27,7 @@ const CHIPS = [
 export function ChatLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('chat')
   const [ingrView, setIngrView] = useState<IngrView>('list')
-  const { ingredients, addIngredient, removeIngredient } = useIngredients()
+  const { ingredients, addIngredients, addIngredient, removeIngredient } = useIngredients()
   const { messages, isStreaming, sendMessage, clearMessages } = useChat()
 
   function handleSend(text: string) {
@@ -39,7 +39,7 @@ export function ChatLayout() {
   }
 
   function handleScanSave(items: MockReceiptItem[]) {
-    items.forEach((item) => addIngredient(item as Ingredient))
+    addIngredients(items as Ingredient[])
     setIngrView('list')
   }
 

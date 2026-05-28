@@ -28,7 +28,9 @@ export function useChat() {
 
     try {
       const ingredients = getIngredients()
-      const apiMessages = nextMessages.map((m) => ({ role: m.role === 'error' ? 'user' : m.role, content: m.content }))
+      const apiMessages = nextMessages
+        .filter((m) => m.role !== 'error')
+        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
       const res = await fetch('/api/chat', {
         method: 'POST',

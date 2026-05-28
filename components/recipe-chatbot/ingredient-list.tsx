@@ -5,9 +5,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Ingredient } from '@/lib/storage'
 
-function calcDaysLeft(expiresAt: string): number {
-  const [year, month, day] = expiresAt.split('.').map(Number)
+function calcDaysLeft(expiresAt: string): number | null {
+  const parts = expiresAt.split('.').map(Number)
+  if (parts.length !== 3 || parts.some(isNaN)) return null
+  const [year, month, day] = parts
   const expiry = new Date(year, month - 1, day)
+  if (isNaN(expiry.getTime())) return null
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -60,11 +63,13 @@ export function IngredientList({ ingredients, onRemove }: Props) {
 
   const urgentItems = ingredients.filter((i) => {
     if (!i.expiresAt) return false
-    return calcDaysLeft(i.expiresAt) <= 7
+    const d = calcDaysLeft(i.expiresAt)
+    return d !== null && d <= 7
   })
   const normalItems = ingredients.filter((i) => {
     if (!i.expiresAt) return true
-    return calcDaysLeft(i.expiresAt) > 7
+    const d = calcDaysLeft(i.expiresAt)
+    return d === null || d > 7
   })
 
   return (

@@ -13,16 +13,28 @@ export function useIngredients() {
   }, [])
 
   function addIngredient(ingredient: Ingredient) {
-    const next = [...ingredients, ingredient]
-    setIngredients(next)
-    saveIngredients(next)
+    setIngredients((prev) => {
+      const next = [...prev, ingredient]
+      saveIngredients(next)
+      return next
+    })
+  }
+
+  function addIngredients(newItems: Ingredient[]) {
+    setIngredients((prev) => {
+      const next = [...prev, ...newItems]
+      saveIngredients(next)
+      return next
+    })
   }
 
   function removeIngredient(id: string) {
-    const next = ingredients.filter((i) => i.id !== id)
-    setIngredients(next)
-    saveIngredients(next)
+    setIngredients((prev) => {
+      const next = prev.filter((i) => i.id !== id)
+      saveIngredients(next)
+      return next
+    })
   }
 
-  return { ingredients, addIngredient, removeIngredient }
+  return { ingredients, addIngredient, addIngredients, removeIngredient }
 }
